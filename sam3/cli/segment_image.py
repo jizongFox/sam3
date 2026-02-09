@@ -121,7 +121,7 @@ def _save_overlay(image_rgb: "PILImage", mask: np.ndarray, save_path: Path, alph
 
 
 def main() -> int:
-    args = tyro.cli(Config)
+    args = tyro.cli(Config, config=(tyro.conf.PositionalRequiredArgs,))
 
     image_path = Path(args.image_path)
     save_path = Path(args.save_path)

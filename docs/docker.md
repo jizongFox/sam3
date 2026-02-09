@@ -59,12 +59,22 @@ By default the CLI saves a **cutout** image.
 - `--mode cutout` (default): saves an RGBA image where alpha is the union of predicted masks (use `.png`)
 - `--mode mask`: saves a binary mask image (`L` / grayscale)
 - `--mode overlay`: saves an RGB image with a red overlay on the predicted region (`--alpha` controls opacity)
+- `--mode boundary`: saves an RGB image with red boundary lines around predicted regions (`--alpha` controls line opacity)
 
-Example:
+Examples:
 
 ```bash
+# Binary mask
 docker run --rm --gpus all -v "$PWD":/data sam3-cli \
   /data/input.jpg "a dog" /data/mask.png --mode mask
+
+# Overlay with transparency
+docker run --rm --gpus all -v "$PWD":/data sam3-cli \
+  /data/input.jpg "a dog" /data/overlay.png --mode overlay --alpha 0.7
+
+# Boundary only (red outline)
+docker run --rm --gpus all -v "$PWD":/data sam3-cli \
+  /data/input.jpg "a dog" /data/boundary.png --mode boundary --alpha 0.8
 ```
 
 ## Model Downloads, HF Tokens, and “Put the Model on Disk”
@@ -125,11 +135,11 @@ docker run --rm sam3-cli --help
 ```
 
 Current flags:
-- `--device {auto,cuda,cpu}`
-- `--confidence-threshold <float>`
-- `--mode {cutout,overlay,mask}`
-- `--alpha <float>` (overlay only)
-- `--compile` (enables `torch.compile`)
+- `--device {auto,cuda,cpu}`: Inference device (default: auto)
+- `--confidence-threshold <float>`: Detection confidence threshold (default: 0.5)
+- `--mode {cutout,overlay,mask,boundary}`: Output format (default: cutout)
+- `--alpha <float>`: Transparency for overlay/boundary modes (default: 0.55)
+- `--compile`: Enable torch.compile for faster inference
 
 ## Troubleshooting
 
