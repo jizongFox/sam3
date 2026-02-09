@@ -1,0 +1,16 @@
+.git
+.github
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+build
+dist
+*.egg-info
+examples
+scripts
+assets

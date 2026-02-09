@@ -147,6 +147,37 @@ response = video_predictor.handle_request(
 output = response["outputs"]
 ```
 
+## Docker
+
+More details: `docs/docker.md`.
+
+This repo does not ship a dedicated CLI by default, so this folder includes a small one for single-image text-prompt segmentation and a `Dockerfile` that wires it as the container entrypoint.
+
+Prereqs:
+- You need access to the Hugging Face model repo `facebook/sam3`.
+- The container must be able to download `sam3.pt` on first run (or you must mount a populated HF cache).
+
+Build:
+
+```bash
+docker build -t sam3-cli .
+```
+
+Run (GPU, recommended):
+
+```bash
+docker run --rm --gpus all \
+  -e HUGGINGFACE_HUB_TOKEN="$HUGGINGFACE_HUB_TOKEN" \
+  -v "$PWD":/data \
+  -v "$HOME/.cache/huggingface":/cache/huggingface \
+  sam3-cli \
+  /data/input.jpg "a dog" /data/output.png
+```
+
+Notes:
+- Output defaults to a cutout image (RGBA `.png`) where alpha is the union of all predicted masks.
+- You can also produce a binary mask or an overlay by passing `--mode mask` or `--mode overlay`.
+
 ## Examples
 
 The `examples` directory contains notebooks demonstrating how to use SAM3 with
