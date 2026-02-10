@@ -8,8 +8,6 @@ ENV PYTHONUNBUFFERED=1 \
     HF_HOME=/cache/huggingface \
     HF_HUB_DISABLE_TELEMETRY=1
 
-COPY . /app
-
 RUN apt-get update &&  apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -19,6 +17,7 @@ RUN apt-get update &&  apt-get install -y \
     libgomp1 \
     libfontconfig1
 
+COPY . /app
 
 # Pillow is used for image I/O; torchvision is used by Sam3Processor.
 RUN python -m pip install --upgrade pip && \

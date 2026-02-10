@@ -16,6 +16,12 @@ from dataclasses import dataclass
 from sam3.model.sam3_image_processor import Sam3Processor
 from sam3.model_builder import build_sam3_image_model
 
+token = os.environ.get("HUGGINGFACE_HUB_TOKEN")
+if token is not None:
+    from huggingface_hub import login
+
+    login(token=token)
+
 
 @dataclass
 class Config:
