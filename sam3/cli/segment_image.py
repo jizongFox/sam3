@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 from typing import Literal
 
@@ -34,6 +35,9 @@ class Config:
     mode: Literal["cutout", "overlay", "mask", "boundary"] = "overlay"
     alpha: float = 0.55
     compile: bool = False
+    warmup_iters: int = 0
+    benchmark_iters: int = 1
+    benchmark: bool = False
 
 
 def _resolve_device(device: str) -> str:
@@ -150,8 +154,55 @@ def main() -> int:
     processor = Sam3Processor(model=model, device=device, confidence_threshold=float(args.confidence_threshold), )
 
     image = Image.open(image_path).convert("RGB")
-    state = processor.set_image(image)
-    state = processor.set_text_prompt(prompt=str(args.prompt), state=state)
+
+    should_sync_cuda = device.startswith("cuda") and torch.cuda.is_available()
+    if args.benchmark:
+        warmup_iters = max(0, int(args.warmup_iters))
+        benchmark_iters = max(1, int(args.benchmark_iters))
+    else:
+        warmup_iters = 0
+        benchmark_iters = 1
+    prompt = str(args.prompt)
+
+    # Warmup (not timed)
+    state = None
+    for _ in range(warmup_iters):
+        state = processor.set_image(image)
+        state = processor.set_text_prompt(prompt=prompt, state=state)
+    if should_sync_cuda:
+        torch.cuda.synchronize()
+
+    # Benchmark (timed)
+    total_ms_list: list[float] = []
+    set_image_ms_list: list[float] = []
+    prompt_ms_list: list[float] = []
+
+    for _ in range(benchmark_iters):
+        if should_sync_cuda:
+            torch.cuda.synchronize()
+        t0 = time.perf_counter()
+        state = processor.set_image(image)
+        if should_sync_cuda:
+            torch.cuda.synchronize()
+        t1 = time.perf_counter()
+        state = processor.set_text_prompt(prompt=prompt, state=state)
+        if should_sync_cuda:
+            torch.cuda.synchronize()
+        t2 = time.perf_counter()
+
+        set_image_ms_list.append((t1 - t0) * 1000.0)
+        prompt_ms_list.append((t2 - t1) * 1000.0)
+        total_ms_list.append((t2 - t0) * 1000.0)
+
+    total_ms_arr = np.asarray(total_ms_list, dtype=np.float64)
+    set_image_ms_arr = np.asarray(set_image_ms_list, dtype=np.float64)
+    prompt_ms_arr = np.asarray(prompt_ms_list, dtype=np.float64)
+
+    print(
+        f"Inference timing ({benchmark_iters} runs, warmup={warmup_iters}, device={device}): "
+        f"total_mean={float(total_ms_arr.mean()):.2f} ms, total_p50={float(np.median(total_ms_arr)):.2f} ms, "
+        f"set_image_mean={float(set_image_ms_arr.mean()):.2f} ms, prompt+predict_mean={float(prompt_ms_arr.mean()):.2f} ms"
+    )
 
     mask = _union_mask_from_state(state)
 
